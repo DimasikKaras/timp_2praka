@@ -143,6 +143,7 @@ function smtp_send_mail(array $config, string $subject, string $body, array $rec
     ];
 
     $body = str_replace(["\r\n", "\r"], "\n", $body);
+    // SMTP требует экранирования строк, начинающихся с точки (dot-stuffing).
     $body = preg_replace('/^\./m', '..', $body);
     $payload = implode("\r\n", $headers) . "\r\n\r\n" . $body;
     $payload = str_replace("\n", "\r\n", $payload);
@@ -188,7 +189,7 @@ if ($action === 'incident') {
     }
 
     $smtpHost = get_env_value('SMTP_HOST');
-    $smtpPort = (int) get_env_value('SMTP_PORT', '587');
+    $smtpPortRaw = get_env_value('SMTP_PORT');
     $smtpUser = get_env_value('SMTP_USER');
     $smtpPass = get_env_value('SMTP_PASS');
     $smtpSecure = strtolower(get_env_value('SMTP_SECURE', 'tls'));
@@ -208,15 +209,24 @@ if ($action === 'incident') {
         json_response('error', ['message' => 'Не задан список получателей.'], 500);
     }
 
-    if ($smtpPort <= 0) {
+    if ($smtpPortRaw === null) {
         $smtpPort = 587;
+    } else {
+        $smtpPortRaw = trim($smtpPortRaw);
+        if (!ctype_digit($smtpPortRaw)) {
+            json_response('error', ['message' => 'Некорректный SMTP_PORT.'], 500);
+        }
+        $smtpPort = (int) $smtpPortRaw;
+        if ($smtpPort <= 0 || $smtpPort > 65535) {
+            json_response('error', ['message' => 'Некорректный SMTP_PORT.'], 500);
+        }
     }
 
     if (!in_array($smtpSecure, ['tls', 'ssl', 'none'], true)) {
         $smtpSecure = 'tls';
     }
 
-    if (!empty($smtpUser) && $smtpPass === null) {
+    if (!empty($smtpUser) && empty($smtpPass)) {
         json_response('error', ['message' => 'Не указан SMTP_PASS для SMTP_USER.'], 500);
     }
 
