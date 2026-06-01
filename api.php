@@ -229,6 +229,9 @@ if ($action === 'incident') {
     if (!empty($smtpUser) && empty($smtpPass)) {
         json_response('error', ['message' => 'Не указан SMTP_PASS для SMTP_USER.'], 500);
     }
+    if (empty($smtpUser) && !empty($smtpPass)) {
+        json_response('error', ['message' => 'Не указан SMTP_USER для SMTP_PASS.'], 500);
+    }
 
     $subject = "Тревога: {$objectName}";
     $details = [
