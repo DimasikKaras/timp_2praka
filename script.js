@@ -67,7 +67,7 @@ async function sendIncidentNotification(incident) {
         }
 
         if (!response.ok || (data && data.status && data.status !== 'success')) {
-            let message = 'Не удалось отправить уведомление о тревоге. Инцидент сохранен.';
+            let message = 'Не удалось отправить email-уведомление. Инцидент сохранен в журнале.';
             if (data && data.message) {
                 message = `${message} ${data.message}`;
             }
@@ -76,7 +76,7 @@ async function sendIncidentNotification(incident) {
         }
     } catch (e) {
         console.error('Ошибка отправки уведомления', e);
-        alert('Не удалось отправить уведомление о тревоге. Инцидент сохранен.');
+        alert('Не удалось отправить email-уведомление. Инцидент сохранен в журнале.');
     }
 }
 
