@@ -59,17 +59,19 @@ async function sendIncidentNotification(incident) {
             body: JSON.stringify(incident)
         });
 
-        if (!response.ok) {
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+            data = null;
+        }
+
+        if (!response.ok || (data && data.status && data.status !== 'success')) {
             let message = 'Не удалось отправить уведомление о тревоге. Инцидент сохранен.';
-            try {
-                const data = await response.json();
-                if (data && data.message) {
-                    message = `${message} ${data.message}`;
-                }
-            } catch (e) {
-                // игнорируем ошибки парсинга ответа
+            if (data && data.message) {
+                message = `${message} ${data.message}`;
             }
-            console.error('Ошибка отправки уведомления', response.status);
+            console.error('Ошибка отправки уведомления', data || response.status);
             alert(message);
         }
     } catch (e) {
