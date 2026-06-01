@@ -51,6 +51,33 @@ async function saveData() {
     }
 }
 
+async function sendIncidentNotification(incident) {
+    try {
+        const response = await fetch('api.php?action=incident', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(incident)
+        });
+
+        if (!response.ok) {
+            let message = 'Не удалось отправить уведомление о тревоге. Инцидент сохранен.';
+            try {
+                const data = await response.json();
+                if (data && data.message) {
+                    message = `${message} ${data.message}`;
+                }
+            } catch (e) {
+                // игнорируем ошибки парсинга ответа
+            }
+            console.error('Ошибка отправки уведомления', response.status);
+            alert(message);
+        }
+    } catch (e) {
+        console.error('Ошибка отправки уведомления', e);
+        alert('Не удалось отправить уведомление о тревоге. Инцидент сохранен.');
+    }
+}
+
 // --- ВАЛИДАЦИЯ ---
 const fioRegex = /^[А-Яа-яЁё]+\s+[А-Яа-яЁё]+(\s+[А-Яа-яЁё]+)?$/;
 const phoneRegex = /^(\+7|8)[\s\-]?\(?[0-9]{3}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/;
@@ -213,18 +240,28 @@ function triggerAlarm(id) {
     const reason = prompt('Причина тревоги:', 'Сработала пожарная сигнализация');
     if (reason === null) return;
     
+    const eventDate = new Date().toLocaleString();
+    const eventReason = reason || 'Неизвестная причина';
     obj.status = 'Тревога';
-    events.unshift({
+    const incidentEvent = {
         id: Date.now(),
         objectId: obj.id,
         objectName: obj.name,
         address: obj.address,
-        reason: reason || 'Неизвестная причина',
+        reason: eventReason,
         status: 'alarm',
-        date: new Date().toLocaleString()
-    });
+        date: eventDate
+    };
+    events.unshift(incidentEvent);
     
     saveData();
+    sendIncidentNotification({
+        objectId: incidentEvent.objectId,
+        objectName: incidentEvent.objectName,
+        address: incidentEvent.address,
+        reason: incidentEvent.reason,
+        date: incidentEvent.date
+    });
     renderObjects();
     renderEvents();
     alert(`ВНИМАНИЕ! Объект "${obj.name}" в режиме ТРЕВОГИ!`);
